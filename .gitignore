@@ -1,3 +1,7 @@
 archive/*
+!archive/.gitkeep
 audio/*
+!audio/.gitkeep
+
+k8s/*
 bot

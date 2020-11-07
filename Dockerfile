@@ -1,13 +1,16 @@
 FROM golang:alpine as builder
 
-COPY go.* /src/
-
 WORKDIR /src
-
+COPY go.* /src/
 RUN go mod download
 
 COPY . /src
-
 RUN go build -o /bot ./cmd
 
-ENTRYPOINT [/bot]
+
+FROM alpine:3
+COPY audio /audio
+COPY archive /archive
+COPY --from=builder /bot /bot
+
+ENTRYPOINT /bot
