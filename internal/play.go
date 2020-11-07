@@ -13,10 +13,15 @@ import (
 )
 
 func init() {
-	register("play", play)
+	register(command{
+		name: "play",
+		args: "NAME",
+		help: "plays a sound clip, see list-audio",
+		fn:   play,
+	})
 }
 
-func play(b *bot, args []string, s *discordgo.Session, m *discordgo.MessageCreate) error {
+func play(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) error {
 	if b.vc == nil {
 		return errors.New("need to join voice channel first")
 	}
@@ -62,7 +67,6 @@ func load(filename string) ([][]byte, error) {
 	}
 
 	var opuslen int16
-
 	for {
 		err = binary.Read(file, binary.LittleEndian, &opuslen)
 

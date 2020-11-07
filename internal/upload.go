@@ -14,17 +14,23 @@ import (
 )
 
 func init() {
-	register("upload", upload)
+	register(command{
+		name: "upload",
+		args: "",
+		help: "upload sound clip(s) using attachments, see list-audio",
+		fn:   upload,
+	})
 }
 
-func upload(b *bot, args []string, s *discordgo.Session, m *discordgo.MessageCreate) error {
+func upload(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) error {
 	for _, a := range m.Attachments {
 		err := validateFile(a.Filename)
 		if err != nil {
 			return err
 		}
 
-		respond(s, m, fmt.Sprintf("downloading %v...", a.Filename))
+		// to make it feel more interactive, send messages while processing stuff
+		b.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("downloading %v...", a.Filename))
 		resp, err := http.Get(a.URL)
 		if err != nil {
 			return err
@@ -43,19 +49,20 @@ func upload(b *bot, args []string, s *discordgo.Session, m *discordgo.MessageCre
 		}
 	}
 
-	respond(s, m, "proccessing files...")
+	b.session.ChannelMessageSend(m.ChannelID, "proccessing files...")
 	err := exec.Command("./convert.sh").Run()
 	if err != nil {
 		return err
 	}
 
-	respond(s, m, "done!")
+	// out is only written after the command returns
+	fmt.Fprintln(out, "done!")
 	return nil
 }
 
 func validateFile(path string) error {
 	if strings.Contains(path, "/") {
-		return errors.New("🖕 no special characters allowed")
+		return errors.New("no special characters allowed")
 	}
 	return nil
 }

@@ -2,26 +2,33 @@ package bot
 
 import (
 	"errors"
+	"fmt"
+	"io"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 func init() {
-	register("join", join)
+	register(command{
+		name: "join",
+		args: "",
+		help: "join your current voice channel",
+		fn:   join,
+	})
 }
 
-func join(b *bot, args []string, s *discordgo.Session, m *discordgo.MessageCreate) error {
-	channel, err := locateChannel(s, m)
+func join(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) error {
+	channel, err := locateChannel(b.session, m)
 	if err != nil {
 		return err
 	}
-	vc, err := s.ChannelVoiceJoin(m.GuildID, channel, false, false)
+	vc, err := b.session.ChannelVoiceJoin(m.GuildID, channel, false, false)
 	if err != nil {
 		return err
 	}
 
 	b.vc = vc
-	respond(s, m, "joining your voice channel")
+	fmt.Fprintln(out, "joining your voice channel")
 	return nil
 }
 

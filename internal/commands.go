@@ -2,42 +2,66 @@ package bot
 
 import (
 	"fmt"
+	"io"
 	"runtime"
+	"sort"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
 
-type action func(b *bot, args []string, s *discordgo.Session, m *discordgo.MessageCreate) error
+type action func(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) error
 
-var commands map[string]action
+type command struct {
+	name string
+	args string
+	help string
+	fn   action
+}
+
+var commands map[string]command
 
 const control_char = "/"
 
-func register(name string, fn action) {
+func register(cmd command) {
 	if commands == nil {
-		commands = make(map[string]action)
+		commands = make(map[string]command)
 	}
 
-	if _, found := commands[name]; found {
-		panic("duplicate command registered: " + name)
+	if _, found := commands[cmd.name]; found {
+		panic("duplicate command registered: " + cmd.name)
 	}
 
-	commands[name] = fn
+	commands[cmd.name] = cmd
 }
 
 func (b *bot) handleCommands(s *discordgo.Session, m *discordgo.MessageCreate) {
+	out := &strings.Builder{}
+
+	if !b.handleAdminCommand(m, out) {
+		b.handleCommand(m, out)
+	}
+
+	s.ChannelMessageSend(m.ChannelID, out.String())
+}
+
+func (b *bot) handleAdminCommand(m *discordgo.MessageCreate, out io.Writer) bool {
 	if b.adminChannelID != "" && m.ChannelID == b.adminChannelID && m.Content == "/kill" {
 		b.killed = true
 	}
 
 	if b.killed {
-		return
+		fmt.Fprintln(out, "kill switch toggled, no longer handling commands")
+		return true
 	}
 
+	return false
+}
+
+func (b *bot) handleCommand(m *discordgo.MessageCreate, out io.Writer) {
 	defer func() {
 		if err := recover(); err != nil {
-			respond(s, m, fmt.Sprintln(err))
+			fmt.Fprintln(out, err)
 			buf := make([]byte, 1024)
 			buf = buf[:runtime.Stack(buf, false)]
 			fmt.Printf("%v\n%s", err, buf)
@@ -52,25 +76,27 @@ func (b *bot) handleCommands(s *discordgo.Session, m *discordgo.MessageCreate) {
 			return
 		}
 
-		if fn, found := commands[args[0]]; found {
-			err := fn(b, args[1:], s, m)
+		if cmd, found := commands[args[0]]; found {
+			err := cmd.fn(b, args[1:], m, out)
 			if err != nil {
-				respond(s, m, fmt.Sprintf("error: %v", err.Error()))
+				fmt.Fprintf(out, "error: %v", err.Error())
 			}
 		} else {
-			displayHelp(s, m)
+			displayHelp(out)
 		}
 	}
 }
 
-func respond(s *discordgo.Session, m *discordgo.MessageCreate, content string) {
-	s.ChannelMessageSend(m.ChannelID, content)
-}
+func displayHelp(out io.Writer) {
+	fmt.Fprintln(out, "Unknown command, available commands are:")
 
-func displayHelp(s *discordgo.Session, m *discordgo.MessageCreate) {
-	message := "Unknown command, available commands are: \n"
-	for k := range commands {
-		message += fmt.Sprintf("\t %v\n", k)
+	cmds := sort.StringSlice{}
+	for _, cmd := range commands {
+		cmds = append(cmds, fmt.Sprintf("`%v %v`: %v", cmd.name, cmd.args, cmd.help))
 	}
-	respond(s, m, message)
+
+	cmds.Sort()
+	for _, v := range cmds {
+		fmt.Fprintf(out, "\t%v\n", v)
+	}
 }

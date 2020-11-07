@@ -1,6 +1,8 @@
 package bot
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -8,10 +10,15 @@ import (
 )
 
 func init() {
-	register("remove", remove)
+	register(command{
+		name: "remove",
+		args: "NAME",
+		help: "remove a sound clip, see list-audio",
+		fn:   remove,
+	})
 }
 
-func remove(b *bot, args []string, s *discordgo.Session, m *discordgo.MessageCreate) error {
+func remove(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) error {
 	filename := args[0]
 	err := validateFile(filename)
 	if err != nil {
@@ -23,6 +30,6 @@ func remove(b *bot, args []string, s *discordgo.Session, m *discordgo.MessageCre
 		return err
 	}
 
-	respond(s, m, "audio removed")
+	fmt.Fprintf(out, "removed %v", filename)
 	return nil
 }

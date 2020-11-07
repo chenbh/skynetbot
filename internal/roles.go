@@ -2,35 +2,36 @@ package bot
 
 import (
 	"fmt"
-	"strings"
+	"io"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/olekukonko/tablewriter"
 )
 
 func init() {
-	register("roles", roles)
+	register(command{
+		name: "roles",
+		args: "",
+		help: "list all the roles you are part of",
+		fn:   roles,
+	})
 }
 
-const check = "✔"
-const cross = "❌"
-
-func roles(b *bot, args []string, s *discordgo.Session, m *discordgo.MessageCreate) error {
-	guildRoles, botRole, err := getRoles(s, m.GuildID)
+func roles(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) error {
+	guildRoles, botRole, err := getRoles(b.session, m.GuildID)
 	if err != nil {
 		return err
 	}
 
-	user, err := s.GuildMember(m.GuildID, m.Author.ID)
+	user, err := b.session.GuildMember(m.GuildID, m.Author.ID)
 	if err != nil {
 		return err
 	}
 
-	message := &strings.Builder{}
-	message.WriteString(fmt.Sprintf("Available roles for %v are:\n", m.Author.Mention()))
-	message.WriteString("```")
+	fmt.Fprintf(out, "Available roles for %v are:\n", m.Author.Mention())
+	fmt.Fprintln(out, "```")
 
-	table := tablewriter.NewWriter(message)
+	table := tablewriter.NewWriter(out)
 	table.SetHeader([]string{"NAME", "@MENTION ID", "MEMBER"})
 
 	for _, role := range guildRoles {
@@ -44,8 +45,7 @@ func roles(b *bot, args []string, s *discordgo.Session, m *discordgo.MessageCrea
 	}
 
 	table.Render()
-	message.WriteString("```")
-	respond(s, m, message.String())
+	fmt.Fprintln(out, "```")
 	return nil
 }
 
