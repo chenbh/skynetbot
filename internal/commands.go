@@ -27,6 +27,14 @@ func register(name string, fn action) {
 }
 
 func (b *bot) handleCommands(s *discordgo.Session, m *discordgo.MessageCreate) {
+	if b.adminChannelID != "" && m.ChannelID == b.adminChannelID && m.Content == "/kill" {
+		b.killed = true
+	}
+
+	if b.killed {
+		return
+	}
+
 	defer func() {
 		if err := recover(); err != nil {
 			respond(s, m, fmt.Sprintln(err))

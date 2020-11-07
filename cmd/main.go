@@ -24,6 +24,10 @@ func init() {
 	rootCmd.Flags().StringP("token", "t", "", "Discord Bot token (DISCORD_TOKEN)")
 	viper.BindPFlag("token", rootCmd.Flags().Lookup("token"))
 	viper.BindEnv("token")
+
+	rootCmd.Flags().StringP("admin-channel", "", "", "Admin channel ID (DISCORD_ADMIN_CHANNEL)")
+	viper.BindPFlag("admin_channel", rootCmd.Flags().Lookup("admin-channel"))
+	viper.BindEnv("admin_channel")
 }
 
 func run(cmd *cobra.Command, args []string) error {
@@ -32,7 +36,9 @@ func run(cmd *cobra.Command, args []string) error {
 		return errors.New("bot token missing")
 	}
 
-	bot, err := bot.NewBot(token)
+	channelID := viper.GetString("admin_channel")
+
+	bot, err := bot.NewBot(token, channelID)
 	if err != nil {
 		return err
 	}

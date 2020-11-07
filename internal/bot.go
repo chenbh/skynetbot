@@ -11,22 +11,26 @@ import (
 )
 
 type bot struct {
-	session *discordgo.Session
-	ctx     context.Context
+	session        *discordgo.Session
+	ctx            context.Context
+	adminChannelID string
+
+	killed bool
 
 	vc           *discordgo.VoiceConnection
 	stopPlayback context.CancelFunc
 }
 
-func NewBot(token string) (*bot, error) {
+func NewBot(token, channelID string) (*bot, error) {
 	s, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return nil, fmt.Errorf("creating session: %v", err)
 	}
 
 	return &bot{
-		session: s,
-		ctx:     context.Background(),
+		session:        s,
+		ctx:            context.Background(),
+		adminChannelID: channelID,
 	}, nil
 }
 
