@@ -21,7 +21,7 @@ type command struct {
 
 var commands map[string]command
 
-const control_char = "/"
+const controlChar = "/"
 
 func register(cmd command) {
 	if commands == nil {
@@ -59,6 +59,7 @@ func (b *bot) handleAdminCommand(m *discordgo.MessageCreate, out io.Writer) bool
 }
 
 func (b *bot) handleCommand(m *discordgo.MessageCreate, out io.Writer) {
+	// log stack trace, similar to http.Serve
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Fprintln(out, err)
@@ -68,9 +69,11 @@ func (b *bot) handleCommand(m *discordgo.MessageCreate, out io.Writer) {
 		}
 	}()
 
-	if strings.HasPrefix(m.Content, control_char) {
-		content := strings.Trim(m.Content, control_char)
-		args := strings.Split(content, " ")
+	if strings.HasPrefix(m.Content, controlChar) {
+		content := strings.TrimLeft(m.Content, controlChar)
+		content = strings.Trim(content, " ")
+
+		args := parseArgs(content)
 
 		if len(args) == 0 {
 			return
@@ -85,6 +88,11 @@ func (b *bot) handleCommand(m *discordgo.MessageCreate, out io.Writer) {
 			displayHelp(out)
 		}
 	}
+}
+
+func parseArgs(line string) []string {
+	// TODO: handle quoted args
+	return strings.Fields(line)
 }
 
 func displayHelp(out io.Writer) {
