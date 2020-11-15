@@ -27,8 +27,8 @@ func listAudio(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer)
 	fmt.Fprintln(out, "available audio:")
 
 	for _, f := range files {
-		if !f.IsDir() && strings.HasSuffix(f.Name(), ".dsa") {
-			fmt.Fprintf(out, "\t%v\n", strings.TrimSuffix(f.Name(), ".dsa"))
+		if !f.IsDir() && strings.HasSuffix(f.Name(), ".opus") {
+			fmt.Fprintf(out, "\t%v\n", strings.TrimSuffix(f.Name(), ".opus"))
 		}
 	}
 	return nil

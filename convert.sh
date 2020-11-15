@@ -1,11 +1,11 @@
 #!/bin/bash
 
-files=$(find audio/* -not -name "*.dsa")
+files=$(find audio/* -not -name "*.opus")
 
 set -eux
 set pipefail
 
 for f in $files; do
-  ffmpeg -i $f -f s16le -ar 48000 -ac 2 pipe:1 | dca > "${f%.*}.dsa"
-  mv $f archive/
+  ffmpeg -i $f -ar 48000 -ac 2 -b:a 64K "${f%.*}.opus"
+  rm $f
 done

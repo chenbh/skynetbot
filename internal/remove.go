@@ -25,7 +25,7 @@ func remove(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) er
 		return err
 	}
 
-	err = os.Remove(filepath.Join("audio", filename+".dsa"))
+	err = os.Remove(filepath.Join("audio", filename+".opus"))
 	if err != nil {
 		return err
 	}

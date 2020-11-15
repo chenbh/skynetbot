@@ -30,34 +30,61 @@ func upload(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) er
 		}
 
 		// to make it feel more interactive, send messages while processing stuff
-		b.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("downloading %v...", a.Filename))
-		resp, err := http.Get(a.URL)
+		b.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("proccessing %v...", a.Filename))
+		path, err := download(a.URL, a.Filename)
 		if err != nil {
-			return err
+			return fmt.Errorf("downloading: %v", err)
 		}
-		defer resp.Body.Close()
 
-		out, err := os.Create(filepath.Join("audio", a.Filename))
+		err = convert(path)
 		if err != nil {
-			return err
-		}
-		defer out.Close()
-
-		_, err = io.Copy(out, resp.Body)
-		if err != nil {
-			return err
+			return fmt.Errorf("converting: %v", err)
 		}
 	}
-
-	b.session.ChannelMessageSend(m.ChannelID, "proccessing files...")
-	err := exec.Command("./convert.sh").Run()
-	if err != nil {
-		return err
-	}
-
 	// out is only written after the command returns
 	fmt.Fprintln(out, "done!")
 	return nil
+}
+
+func download(url, filename string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	path := filepath.Join("audio", filename)
+	out, err := os.Create(path)
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return path, nil
+}
+
+func convert(filename string) error {
+	ext := filepath.Ext(filename)
+	outputFile := strings.TrimRight(filename, ext) + ".opus"
+
+	options := []string{
+		"-i", filename,
+		"-ar", "48000", // 48khz
+		"-ac", "2", // stereo
+		"-b:a", "64K", // bitrate 64kbs
+		outputFile,
+	}
+	err := exec.Command("ffmpeg", options...).Run()
+	if err != nil {
+		return fmt.Errorf("ffmpeg: %v", err)
+	}
+
+	return os.Remove(filename)
 }
 
 func validateFile(path string) error {

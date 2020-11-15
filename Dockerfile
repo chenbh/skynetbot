@@ -7,10 +7,9 @@ RUN go mod download
 COPY . /src
 RUN go build -o /bot ./cmd
 
-
 FROM alpine:3
+RUN apk add ffmpeg
 COPY audio /audio
-COPY archive /archive
 COPY --from=builder /bot /bot
 
 ENTRYPOINT /bot

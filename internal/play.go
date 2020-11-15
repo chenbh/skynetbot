@@ -1,7 +1,7 @@
 package bot
 
 import (
-	"encoding/binary"
+	"bot/pkg/opusfile"
 	"errors"
 	"fmt"
 	"io"
@@ -31,7 +31,7 @@ func play(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) erro
 	}
 
 	filename := args[0]
-	buffer, err := load(path.Join("audio", filename+".dsa"))
+	reader, err := load(path.Join("audio", filename+".opus"))
 	if err != nil {
 		return err
 	}
@@ -43,53 +43,36 @@ func play(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) erro
 	var ctx context.Context
 	ctx, b.stopPlayback = context.WithCancel(b.ctx)
 
-	go transmit(ctx, b, buffer)
+	go transmit(ctx, b, reader)
 	return nil
 }
 
-func transmit(ctx context.Context, b *bot, buffer [][]byte) {
-	for _, buf := range buffer {
+func transmit(ctx context.Context, b *bot, reader opusfile.OpusReader) {
+	for {
+		packet, err := reader.NextPacketRaw()
+		if err != nil {
+			break
+		}
+
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			b.vc.OpusSend <- buf
+			b.vc.OpusSend <- packet
 		}
 	}
 }
 
-func load(filename string) ([][]byte, error) {
-	buffer := make([][]byte, 0)
-
+func load(filename string) (opusfile.OpusReader, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %v", err)
 	}
 
-	var opuslen int16
-	for {
-		err = binary.Read(file, binary.LittleEndian, &opuslen)
-
-		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			err := file.Close()
-			if err != nil {
-				return nil, err
-			}
-			break
-		}
-
-		if err != nil {
-			return nil, fmt.Errorf("reading file: %v", err)
-		}
-
-		buf := make([]byte, opuslen)
-		err = binary.Read(file, binary.LittleEndian, &buf)
-		if err != nil {
-			return nil, err
-		}
-
-		buffer = append(buffer, buf)
+	reader, err := opusfile.NewOpusReader(file)
+	if err != nil {
+		return nil, err
 	}
 
-	return buffer, nil
+	return reader, nil
 }

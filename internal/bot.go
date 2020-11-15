@@ -57,6 +57,5 @@ func (b *bot) Run() error {
 	if b.vc != nil {
 		return b.vc.Disconnect()
 	}
-
 	return nil
 }
