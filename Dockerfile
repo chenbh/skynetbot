@@ -9,7 +9,6 @@ RUN go build -o /bot ./cmd
 
 FROM alpine:3
 RUN apk add ffmpeg
-COPY audio /audio
 COPY --from=builder /bot /bot
 
 ENTRYPOINT /bot

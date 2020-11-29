@@ -1,13 +1,13 @@
 FILES=$(shell find -type f -name '*.go')
-.PHONY: all run deps
+EXE=bot
 
-all: $(FILES)
-	go build -o bot ./cmd
+.PHONY: run docker
 
-run: all
-	./bot
+${EXE}: $(FILES)
+	go build -o ${EXE} ./cmd
 
-deps:
-	sudo apt-get install ffmpeg
-	go get -u github.com/bwmarrin/dca/cmd/dca
-	# ffmpeg -i test.mp3 -f s16le -ar 48000 -ac 2 pipe:1 | dca > test.dca
+run: ${EXE}
+	./${EXE}
+
+docker: Dockerfile $(FILES)
+	docker build -t trasacom/skynetbot .
