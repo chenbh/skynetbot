@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	bot "bot/internal"
-
+	bot "github.com/chenbh/skynetbot/internal"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

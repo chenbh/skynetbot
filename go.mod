@@ -1,4 +1,4 @@
-module bot
+module github.com/chenbh/skynetbot
 
 go 1.15
 

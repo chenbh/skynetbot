@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"bot/pkg/opusfile"
 	"errors"
 	"fmt"
 	"io"
@@ -9,6 +8,7 @@ import (
 	"path"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/chenbh/skynetbot/pkg/opusfile"
 	"golang.org/x/net/context"
 )
 
