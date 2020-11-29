@@ -1,0 +1,6 @@
+tests tests tests
+sub commands? /audio list and /role list?
+create/manage/remove roles via commands
+list all members of role (might be tricky to implement)
+better way of doing the kill switch, while being able to handle k8s
+README
