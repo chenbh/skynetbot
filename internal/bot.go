@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
+	"strings"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
@@ -15,11 +17,13 @@ type bot struct {
 	ctx            context.Context
 	adminChannelID string
 
-	killed bool
+	active bool
 
 	vc           *discordgo.VoiceConnection
 	stopPlayback context.CancelFunc
 }
+
+const controlChar = "/"
 
 func NewBot(token, channelID string) (*bot, error) {
 	s, err := discordgo.New("Bot " + token)
@@ -35,7 +39,7 @@ func NewBot(token, channelID string) (*bot, error) {
 }
 
 func (b *bot) Run() error {
-	b.session.AddHandler(b.handleCommands)
+	b.session.AddHandler(setupHandler(b))
 
 	b.session.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuilds |
 		discordgo.IntentsGuildMessages |
@@ -58,4 +62,68 @@ func (b *bot) Run() error {
 		return b.vc.Disconnect()
 	}
 	return nil
+}
+func (b *bot) isAdmin(cid string) bool {
+	return cid == b.adminChannelID
+}
+
+func setupHandler(b *bot) func(*discordgo.Session, *discordgo.MessageCreate) {
+	rootCmd := setupCmds()
+
+	return func(s *discordgo.Session, m *discordgo.MessageCreate) {
+		// log stack trace, similar to http.Serve
+		defer func() {
+			if err := recover(); err != nil {
+				s.ChannelMessageSend(m.ChannelID, fmt.Sprint(err))
+				buf := make([]byte, 8196)
+				buf = buf[:runtime.Stack(buf, false)]
+				fmt.Printf("%v\n%s", err, buf)
+			}
+		}()
+
+		if !strings.HasPrefix(m.Content, controlChar) {
+			return
+		}
+
+		content := strings.TrimLeft(m.Content, controlChar)
+		content = strings.Trim(content, " ")
+
+		args := parseArgs(content)
+
+		if len(args) == 0 {
+			return
+		}
+
+		rootCmd.Run(b, args, m)
+	}
+}
+
+func parseArgs(line string) []string {
+	// TODO: handle quoted args
+	return strings.Fields(line)
+}
+
+func setupCmds() *command {
+	root := newGroup("", "")
+
+	role := roleCommand()
+	root.addCommand(role)
+
+	audio := audioCommand()
+	root.addCommand(audio)
+
+	root.addCommand(newAction(
+		"kill",
+		nil,
+		"disable the bot",
+		setActive(false),
+	))
+	root.addCommand(newAction(
+		"roll",
+		[]string{"[CEIL]"},
+		"generate a random number in [0, 100) or [0, CEIL)",
+		roll,
+	))
+
+	return root
 }

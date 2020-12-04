@@ -2,22 +2,25 @@ package bot
 
 import (
 	"fmt"
-	"io"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/olekukonko/tablewriter"
 )
 
-func init() {
-	register(command{
-		name: "roles",
-		args: "",
-		help: "list all the roles you are part of",
-		fn:   roles,
-	})
+func roleCommand() *command {
+	role := newGroup("role", "manipulate server roles")
+	role.addCommand(newAction(
+		"list",
+		nil,
+		"list all roles you currently have",
+		listRoles,
+	))
+	return role
 }
 
-func roles(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) error {
+func listRoles(b *bot, args []string, m *discordgo.MessageCreate) error {
+	out := &strings.Builder{}
 	guildRoles, botRole, err := getRoles(b.session, m.GuildID)
 	if err != nil {
 		return err
@@ -46,6 +49,7 @@ func roles(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) err
 
 	table.Render()
 	fmt.Fprintln(out, "```")
+	respond(b.session, m, out.String())
 	return nil
 }
 

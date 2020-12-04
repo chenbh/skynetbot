@@ -3,23 +3,13 @@ package bot
 import (
 	"errors"
 	"fmt"
-	"io"
 	"math/rand"
 	"strconv"
 
 	"github.com/bwmarrin/discordgo"
 )
 
-func init() {
-	register(command{
-		name: "roll",
-		args: "[CEIL]",
-		help: "generate a random number in [0, 100) or [0, CEIL)",
-		fn:   roll,
-	})
-}
-
-func roll(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) error {
+func roll(b *bot, args []string, m *discordgo.MessageCreate) error {
 	var err error
 	ceil := 100
 	if len(args) != 0 {
@@ -29,6 +19,6 @@ func roll(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) erro
 		}
 	}
 
-	fmt.Fprintf(out, "%v", rand.Intn(ceil))
+	respond(b.session, m, fmt.Sprintf("%v", rand.Intn(ceil)))
 	return nil
 }

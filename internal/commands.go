@@ -2,109 +2,94 @@ package bot
 
 import (
 	"fmt"
-	"io"
-	"runtime"
 	"sort"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
 
-type action func(b *bot, args []string, m *discordgo.MessageCreate, out io.Writer) error
+type action func(b *bot, args []string, m *discordgo.MessageCreate) error
 
 type command struct {
 	name string
-	args string
+	args []string
 	help string
+
 	fn   action
+	cmds map[string]*command
 }
 
-var commands map[string]command
-
-const controlChar = "/"
-
-func register(cmd command) {
-	if commands == nil {
-		commands = make(map[string]command)
+func newAction(name string, args []string, help string, fn action) *command {
+	return &command{
+		name: name,
+		args: args,
+		help: help,
+		fn:   fn,
 	}
-
-	if _, found := commands[cmd.name]; found {
-		panic("duplicate command registered: " + cmd.name)
-	}
-
-	commands[cmd.name] = cmd
 }
 
-func (b *bot) handleCommands(s *discordgo.Session, m *discordgo.MessageCreate) {
+func newGroup(name, help string) *command {
+	c := make(map[string]*command)
+	return &command{
+		name: name,
+		help: help,
+		cmds: c,
+	}
+}
+
+func (c *command) addCommand(cmd *command) {
+	if c.cmds == nil {
+		panic("adding commands to an action")
+	}
+	if _, found := c.cmds[cmd.name]; found {
+		fmt.Println("duplicate command registered: " + cmd.name)
+	}
+	c.cmds[cmd.name] = cmd
+}
+
+func (c *command) Run(b *bot, args []string, m *discordgo.MessageCreate) error {
+	// command is a single action
+	if c.fn != nil {
+		return c.fn(b, args, m)
+	}
+
+	// command is a group of commands
 	out := &strings.Builder{}
-
-	if !b.handleAdminCommand(m, out) {
-		b.handleCommand(m, out)
-	}
-
-	s.ChannelMessageSend(m.ChannelID, out.String())
-}
-
-func (b *bot) handleAdminCommand(m *discordgo.MessageCreate, out io.Writer) bool {
-	if b.adminChannelID != "" && m.ChannelID == b.adminChannelID && m.Content == "/kill" {
-		b.killed = true
-	}
-
-	if b.killed {
-		fmt.Fprintln(out, "kill switch toggled, no longer handling commands")
-		return true
-	}
-
-	return false
-}
-
-func (b *bot) handleCommand(m *discordgo.MessageCreate, out io.Writer) {
-	// log stack trace, similar to http.Serve
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Fprintln(out, err)
-			buf := make([]byte, 1024)
-			buf = buf[:runtime.Stack(buf, false)]
-			fmt.Printf("%v\n%s", err, buf)
-		}
-	}()
-
-	if strings.HasPrefix(m.Content, controlChar) {
-		content := strings.TrimLeft(m.Content, controlChar)
-		content = strings.Trim(content, " ")
-
-		args := parseArgs(content)
-
-		if len(args) == 0 {
-			return
+	if cmd, found := c.cmds[args[0]]; found {
+		newArgs := make([]string, 0)
+		if len(args) > 1 {
+			newArgs = args[1:]
 		}
 
-		if cmd, found := commands[args[0]]; found {
-			err := cmd.fn(b, args[1:], m, out)
-			if err != nil {
-				fmt.Fprintf(out, "error: %v", err.Error())
-			}
-		} else {
-			displayHelp(out)
-		}
+		return cmd.Run(b, newArgs, m)
+	} else if args[0] == "help" {
+		msg := fmt.Sprintf("Sub-commands under %v:\n", c.name)
+		msg += c.displayHelp()
+		return respond(b.session, m, msg)
+	} else {
+		msg := fmt.Sprintln(out, "Unknown command, available commands:")
+		msg += c.displayHelp()
+		return respond(b.session, m, msg)
 	}
 }
 
-func parseArgs(line string) []string {
-	// TODO: handle quoted args
-	return strings.Fields(line)
-}
-
-func displayHelp(out io.Writer) {
-	fmt.Fprintln(out, "Unknown command, available commands are:")
-
+func (c *command) displayHelp() string {
+	out := &strings.Builder{}
 	cmds := sort.StringSlice{}
-	for _, cmd := range commands {
-		cmds = append(cmds, fmt.Sprintf("`%v %v`: %v", cmd.name, cmd.args, cmd.help))
+	for _, cmd := range c.cmds {
+		if cmd.cmds != nil {
+			nestedHelp := strings.ReplaceAll(cmd.displayHelp(), "\t", "\t\t")
+			nestedHelp = strings.TrimRight(nestedHelp, "\n")
+			cmds = append(cmds, fmt.Sprintf("`%v`:\n%v", cmd.name, nestedHelp))
+		} else {
+			usage := strings.Join(append([]string{cmd.name}, cmd.args...), " ")
+			cmds = append(cmds, fmt.Sprintf("`%v`: %v", usage, cmd.help))
+		}
 	}
 
 	cmds.Sort()
 	for _, v := range cmds {
 		fmt.Fprintf(out, "\t%v\n", v)
 	}
+	return out.String()
 }
