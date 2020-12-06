@@ -19,6 +19,6 @@ func roll(b *bot, args []string, m *discordgo.MessageCreate) error {
 		}
 	}
 
-	respond(b.session, m, fmt.Sprintf("%v", rand.Intn(ceil)))
+	b.respond(m, fmt.Sprintf("%v", rand.Intn(ceil)))
 	return nil
 }

@@ -78,7 +78,7 @@ func listAudio(b *bot, args []string, m *discordgo.MessageCreate) error {
 			fmt.Fprintf(out, "\t%v\n", strings.TrimSuffix(f.Name(), ".opus"))
 		}
 	}
-	respond(b.session, m, out.String())
+	b.respond(m, out.String())
 	return nil
 }
 
@@ -90,7 +90,7 @@ func upload(b *bot, args []string, m *discordgo.MessageCreate) error {
 		}
 
 		// to make it feel more interactive, send messages while processing stuff
-		respond(b.session, m, fmt.Sprintf("procccessing %v...", a.Filename))
+		b.respond(m, fmt.Sprintf("procccessing %v...", a.Filename))
 		path, err := downloadUrl(a.URL, a.Filename)
 		if err != nil {
 			return fmt.Errorf("downloading: %v", err)
@@ -102,7 +102,7 @@ func upload(b *bot, args []string, m *discordgo.MessageCreate) error {
 		}
 	}
 	// out is only written after the command returns
-	respond(b.session, m, "done!")
+	b.respond(m, "done!")
 	return nil
 }
 
@@ -159,7 +159,7 @@ func remove(b *bot, args []string, m *discordgo.MessageCreate) error {
 		return err
 	}
 
-	respond(b.session, m, fmt.Sprintf("removed %v", filename))
+	b.respond(m, fmt.Sprintf("removed %v", filename))
 	return nil
 }
 
@@ -174,7 +174,7 @@ func join(b *bot, args []string, m *discordgo.MessageCreate) error {
 	}
 
 	b.vc = vc
-	respond(b.session, m, "joining your voice channel")
+	b.respond(m, "joining your voice channel")
 	return nil
 }
 

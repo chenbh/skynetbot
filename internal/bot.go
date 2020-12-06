@@ -77,6 +77,11 @@ func (b *bot) requireAdmin(m *discordgo.MessageCreate) error {
 	return nil
 }
 
+func (b *bot) respond(m *discordgo.MessageCreate, msg string) error {
+	_, err := b.session.ChannelMessageSend(m.ChannelID, msg)
+	return err
+}
+
 func setupHandler(b *bot) func(*discordgo.Session, *discordgo.MessageCreate) {
 	rootCmd := setupCmds()
 

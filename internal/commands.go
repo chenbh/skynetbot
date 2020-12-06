@@ -50,6 +50,11 @@ func (c *command) addCommand(cmd *command) {
 func (c *command) Run(b *bot, args []string, m *discordgo.MessageCreate) error {
 	// command is a single action
 	if c.fn != nil {
+		if len(args) != len(c.args) {
+			msg := fmt.Sprintf("%v expected %v args, but got %v", c.name, len(c.args), len(args))
+			return b.respond(m, msg)
+		}
+
 		return c.fn(b, args, m)
 	}
 
@@ -61,15 +66,19 @@ func (c *command) Run(b *bot, args []string, m *discordgo.MessageCreate) error {
 			newArgs = args[1:]
 		}
 
-		return cmd.Run(b, newArgs, m)
+		err := cmd.Run(b, newArgs, m)
+		if err != nil {
+			return b.respond(m, err.Error())
+		}
+		return nil
 	} else if args[0] == "help" {
 		msg := fmt.Sprintf("Sub-commands under %v:\n", c.name)
 		msg += c.displayHelp()
-		return respond(b.session, m, msg)
+		return b.respond(m, msg)
 	} else {
 		msg := fmt.Sprintln(out, "Unknown command, available commands:")
 		msg += c.displayHelp()
-		return respond(b.session, m, msg)
+		return b.respond(m, msg)
 	}
 }
 

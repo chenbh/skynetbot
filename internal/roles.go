@@ -49,7 +49,7 @@ func listRoles(b *bot, args []string, m *discordgo.MessageCreate) error {
 
 	table.Render()
 	fmt.Fprintln(out, "```")
-	respond(b.session, m, out.String())
+	b.respond(m, out.String())
 	return nil
 }
 
