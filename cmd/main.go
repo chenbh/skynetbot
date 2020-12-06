@@ -24,9 +24,9 @@ func init() {
 	viper.BindPFlag("token", rootCmd.Flags().Lookup("token"))
 	viper.BindEnv("token")
 
-	rootCmd.Flags().StringP("admin-channel", "", "", "Admin channel ID (DISCORD_ADMIN_CHANNEL)")
-	viper.BindPFlag("admin_channel", rootCmd.Flags().Lookup("admin-channel"))
-	viper.BindEnv("admin_channel")
+	rootCmd.Flags().StringP("admin-role", "", "", "Admin role ID (DISCORD_ADMIN_ROLE)")
+	viper.BindPFlag("admin_role", rootCmd.Flags().Lookup("admin-role"))
+	viper.BindEnv("admin_role")
 }
 
 func run(cmd *cobra.Command, args []string) error {
@@ -35,9 +35,9 @@ func run(cmd *cobra.Command, args []string) error {
 		return errors.New("bot token missing")
 	}
 
-	channelID := viper.GetString("admin_channel")
+	roleID := viper.GetString("admin_role")
 
-	bot, err := bot.NewBot(token, channelID)
+	bot, err := bot.NewBot(token, roleID)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -13,9 +14,9 @@ import (
 )
 
 type bot struct {
-	session        *discordgo.Session
-	ctx            context.Context
-	adminChannelID string
+	session     *discordgo.Session
+	ctx         context.Context
+	adminRoleID string
 
 	active bool
 
@@ -25,26 +26,27 @@ type bot struct {
 
 const controlChar = "/"
 
-func NewBot(token, channelID string) (*bot, error) {
+func NewBot(token, roleID string) (*bot, error) {
 	s, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return nil, fmt.Errorf("creating session: %v", err)
 	}
 
 	return &bot{
-		session:        s,
-		ctx:            context.Background(),
-		adminChannelID: channelID,
+		session:     s,
+		ctx:         context.Background(),
+		adminRoleID: roleID,
 	}, nil
 }
 
 func (b *bot) Run() error {
 	b.session.AddHandler(setupHandler(b))
 
-	b.session.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuilds |
-		discordgo.IntentsGuildMessages |
-		discordgo.IntentsGuildVoiceStates |
-		discordgo.IntentsGuildMessageReactions,
+	b.session.Identify.Intents = discordgo.MakeIntent(
+		discordgo.IntentsGuilds |
+			discordgo.IntentsGuildMessages |
+			discordgo.IntentsGuildVoiceStates |
+			discordgo.IntentsGuildMessageReactions,
 	)
 
 	err := b.session.Open()
@@ -63,8 +65,16 @@ func (b *bot) Run() error {
 	}
 	return nil
 }
-func (b *bot) isAdmin(cid string) bool {
-	return cid == b.adminChannelID
+
+func (b *bot) requireAdmin(m *discordgo.MessageCreate) error {
+	user, err := b.session.GuildMember(m.GuildID, m.Author.ID)
+	if err != nil {
+		return err
+	}
+	if !contains(user.Roles, b.adminRoleID) {
+		return errors.New("need admin role to run this command")
+	}
+	return nil
 }
 
 func setupHandler(b *bot) func(*discordgo.Session, *discordgo.MessageCreate) {
