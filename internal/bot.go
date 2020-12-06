@@ -183,8 +183,14 @@ func setupCmds() *command {
 	root.addCommand(newAction(
 		"roll",
 		[]string{"[CEIL]"},
-		"generate a random number in [0, 100) or [0, CEIL)",
+		"generate a random number in [0, CEIL), CEIL defaults to 100",
 		roll,
+	))
+	root.addCommand(newAction(
+		"nudes",
+		nil,
+		"👀",
+		nudes,
 	))
 
 	return root

@@ -13,7 +13,6 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "bot",
 	Short: "run the bot",
-	Long:  `run a god damned discord bot`,
 	RunE:  run,
 }
 

@@ -1,19 +1,30 @@
+# Usage
+
+1. Install [ffmpeg](https://ffmpeg.org/), this will be needed to process audio files
+1. Provide the required flags through command line or env vars:
+  - `--admin-role` (`$DISCORD_ADMIN_ROLE`): ID for the role that will be required to perform some commands
+  - `--token` (`$DISCORD_TOKEN`): Token for your bot, see https://discord.com/developers/applications
 
 
+# Commands
 
-# Installation
+Commands can be run in any channel the bot has read access to. Any message starting with `/` will be interpretted as a command.
 
-1. install ffmpeg (https://github.com/giorgisio/goav)
-  1. ```sh
-    sudo apt-get -y install autoconf automake build-essential libass-dev libfreetype6-dev libsdl1.2-dev libtheora-dev libtool libva-dev libvdpau-dev libvorbis-dev libxcb1-dev libxcb-shm0-dev libxcb-xfixes0-dev pkg-config texi2html zlib1g-dev
-
-    sudo apt-get install -y libavdevice-dev libavfilter-dev libswscale-dev libavcodec-dev libavformat-dev libswresample-dev libavutil-dev
-
-    sudo apt-get install yasm
-
-    export FFMPEG_ROOT=$HOME/ffmpeg
-    export CGO_LDFLAGS="-L$FFMPEG_ROOT/lib/ -lavcodec -lavformat -lavutil -lswscale -lswresample -lavdevice -lavfilter"
-    export CGO_CFLAGS="-I$FFMPEG_ROOT/include"
-    export LD_LIBRARY_PATH=$HOME/ffmpeg/lib
-    ```
-  1. `sudo apt-get install libopus-dev`
+- `/help`: display all available commands
+- `/kill`: disable the bot, only works when run by user with admin role
+- `/roll [NUM]: generate a random number between 0 (exclusive) and `NUM` (inclusive), in math notation this is [0, NUM). `NUM` defaults to 100.
+- `/audio`:
+  - `disconnect`: disconnect from current voice channel
+  - `join`: join you current voice channel
+  - `list`: list available sound clips
+  - `play NAME`: plays a sound clip, see audio list
+  - `remove NAME`: remove a sound clip, see audio list
+  - `stop`: stop playing the current sound clip
+  - `upload`: upload sound clip(s) using attachments, see audio list
+- `/roles`
+  - `assign @USER @ROLE`: assign a user to a role, requires admin role
+  - `create NAME`: create a role, requires admin role
+  - `join @ROLE`: join a role
+  - `leave @ROLE`: leave a role
+  - `list`: list all roles you currently have
+  - `remove @ROLE`: remove a role, requires admin role
