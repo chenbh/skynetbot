@@ -23,48 +23,48 @@ func audioCommand() *command {
 		"list",
 		nil,
 		"list available sound clips",
-		listAudio,
+		audioList,
 	))
 	audio.addCommand(newAction(
 		"upload",
 		nil,
 		"upload sound clip(s) using attachments, see `audio list`",
-		upload,
+		audioUpload,
 	))
 	audio.addCommand(newAction(
 		"remove",
 		[]string{"NAME"},
 		"remove a sound clip, see `audio list`",
-		remove,
+		audioRemove,
 	))
 	audio.addCommand(newAction(
 		"join",
 		nil,
 		"join you current voice channel",
-		join,
+		audioJoin,
 	))
 	audio.addCommand(newAction(
 		"disconnect",
 		nil,
 		"disconnect from current voice channel",
-		disconnect,
+		audioDisconnect,
 	))
 	audio.addCommand(newAction(
 		"play",
 		[]string{"NAME"},
 		"plays a sound clip, see `audio list`",
-		play,
+		audioPlay,
 	))
 	audio.addCommand(newAction(
 		"stop",
 		nil,
 		"stop playing the current sound clip",
-		stop,
+		audioStop,
 	))
 	return audio
 }
 
-func listAudio(b *bot, args []string, m *discordgo.MessageCreate) error {
+func audioList(b *bot, args []string, m *discordgo.MessageCreate) error {
 	files, err := ioutil.ReadDir("audio")
 	if err != nil {
 		return err
@@ -82,7 +82,7 @@ func listAudio(b *bot, args []string, m *discordgo.MessageCreate) error {
 	return nil
 }
 
-func upload(b *bot, args []string, m *discordgo.MessageCreate) error {
+func audioUpload(b *bot, args []string, m *discordgo.MessageCreate) error {
 	for _, a := range m.Attachments {
 		err := validateFile(a.Filename)
 		if err != nil {
@@ -147,7 +147,7 @@ func convert(filename string) error {
 	return os.Remove(filename)
 }
 
-func remove(b *bot, args []string, m *discordgo.MessageCreate) error {
+func audioRemove(b *bot, args []string, m *discordgo.MessageCreate) error {
 	filename := args[0]
 	err := validateFile(filename)
 	if err != nil {
@@ -163,7 +163,7 @@ func remove(b *bot, args []string, m *discordgo.MessageCreate) error {
 	return nil
 }
 
-func join(b *bot, args []string, m *discordgo.MessageCreate) error {
+func audioJoin(b *bot, args []string, m *discordgo.MessageCreate) error {
 	channel, err := locateChannel(b.session, m)
 	if err != nil {
 		return err
@@ -178,7 +178,7 @@ func join(b *bot, args []string, m *discordgo.MessageCreate) error {
 	return nil
 }
 
-func disconnect(b *bot, args []string, m *discordgo.MessageCreate) error {
+func audioDisconnect(b *bot, args []string, m *discordgo.MessageCreate) error {
 	if b.vc != nil {
 		b.vc.Disconnect()
 		b.vc = nil
@@ -186,7 +186,7 @@ func disconnect(b *bot, args []string, m *discordgo.MessageCreate) error {
 	return nil
 }
 
-func play(b *bot, args []string, m *discordgo.MessageCreate) error {
+func audioPlay(b *bot, args []string, m *discordgo.MessageCreate) error {
 	if b.vc == nil {
 		return errors.New("need to join voice channel first")
 	}
@@ -256,7 +256,7 @@ func locateChannel(s *discordgo.Session, m *discordgo.MessageCreate) (string, er
 	return "", errors.New("can't find voice channel")
 }
 
-func stop(b *bot, args []string, m *discordgo.MessageCreate) error {
+func audioStop(b *bot, args []string, m *discordgo.MessageCreate) error {
 	if b.vc != nil && b.stopPlayback != nil {
 		b.stopPlayback()
 		b.stopPlayback = nil
