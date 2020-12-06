@@ -61,7 +61,7 @@ func (c *command) Run(b *bot, args []string, m *discordgo.MessageCreate) error {
 	// command is a group of commands
 	out := &strings.Builder{}
 	if cmd, found := c.cmds[args[0]]; found {
-		newArgs := make([]string, 0)
+		var newArgs []string
 		if len(args) > 1 {
 			newArgs = args[1:]
 		}
@@ -72,11 +72,11 @@ func (c *command) Run(b *bot, args []string, m *discordgo.MessageCreate) error {
 		}
 		return nil
 	} else if args[0] == "help" {
-		msg := fmt.Sprintf("Sub-commands under %v:\n", c.name)
+		msg := fmt.Sprintf("available commands for `%v`:\n", c.name)
 		msg += c.displayHelp()
 		return b.respond(m, msg)
 	} else {
-		msg := fmt.Sprintln(out, "Unknown command, available commands:")
+		msg := fmt.Sprintln(out, "unknown command, available commands:")
 		msg += c.displayHelp()
 		return b.respond(m, msg)
 	}

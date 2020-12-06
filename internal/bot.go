@@ -77,6 +77,53 @@ func (b *bot) requireAdmin(m *discordgo.MessageCreate) error {
 	return nil
 }
 
+func (b *bot) roles(gid string) ([]*discordgo.Role, error) {
+	allRoles, err := b.session.GuildRoles(gid)
+	if err != nil {
+		return nil, err
+	}
+
+	bot, err := b.session.State.Member(gid, b.session.State.User.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var botRole *discordgo.Role
+	for _, role := range allRoles {
+		if role.Managed && contains(bot.Roles, role.ID) {
+			botRole = role
+		}
+	}
+
+	roles := make([]*discordgo.Role, 0)
+	for _, role := range allRoles {
+		if role.Position < botRole.Position && role.Name != "@everyone" {
+			roles = append(roles, role)
+		}
+	}
+
+	return roles, nil
+}
+
+func (b *bot) findRole(gid, rid string) (*discordgo.Role, error) {
+	roles, err := b.roles(gid)
+	if err != nil {
+		return nil, err
+	}
+
+	var role *discordgo.Role
+	for _, r := range roles {
+		if r.ID == rid {
+			role = r
+		}
+	}
+	if role == nil {
+		return nil, errors.New("cannot manage role")
+	}
+
+	return role, nil
+}
+
 func (b *bot) respond(m *discordgo.MessageCreate, msg string) error {
 	_, err := b.session.ChannelMessageSend(m.ChannelID, msg)
 	return err
@@ -119,7 +166,7 @@ func parseArgs(line string) []string {
 }
 
 func setupCmds() *command {
-	root := newGroup("", "")
+	root := newGroup("/", "")
 
 	role := roleCommand()
 	root.addCommand(role)
