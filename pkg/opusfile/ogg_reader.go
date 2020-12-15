@@ -1,81 +1,10 @@
 package opusfile
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
 )
-
-type OggHeader struct {
-	Version     uint8
-	IsContinued bool
-	IsFirstPage bool
-	IsLastPage  bool
-
-	GranulePosition uint64
-	BitstreamSerial uint32
-	PageSequence    uint32
-	CrcChecksum     uint32
-
-	PageSegments uint8
-	SegmentTable []uint8
-}
-
-type OggPage struct {
-	OggHeader
-
-	Segments [][]byte
-
-	// Size of all segments in bytes
-	SegmentTotal int
-}
-
-func (p OggPage) Bytes(includeChecksum bool) []byte {
-	totalSize := 27 + int(p.PageSegments) + p.SegmentTotal
-	buf := bytes.NewBuffer(make([]byte, 0, totalSize))
-	var b []byte
-
-	buf.WriteString("OggS")
-	buf.WriteByte(byte(p.Version))
-
-	headerType := uint8(0x0)
-	if p.IsContinued {
-		headerType = headerType | 0x1
-	}
-	if p.IsFirstPage {
-		headerType = headerType | 0x2
-	}
-	if p.IsLastPage {
-		headerType = headerType | 0x4
-	}
-	buf.WriteByte(byte(headerType))
-
-	b = make([]byte, 8)
-	binary.LittleEndian.PutUint64(b, p.GranulePosition)
-	buf.Write(b)
-
-	b = make([]byte, 4)
-	binary.LittleEndian.PutUint32(b, p.BitstreamSerial)
-	buf.Write(b)
-
-	b = make([]byte, 4)
-	binary.LittleEndian.PutUint32(b, p.PageSequence)
-	buf.Write(b)
-
-	b = make([]byte, 4)
-	if includeChecksum {
-		binary.LittleEndian.PutUint32(b, p.CrcChecksum)
-	}
-	buf.Write(b)
-
-	buf.WriteByte(byte(p.PageSegments))
-	for _, s := range p.Segments {
-		buf.Write(s)
-	}
-
-	return buf.Bytes()
-}
 
 type OggReader interface {
 	NextPage() (OggPage, error)
@@ -142,7 +71,7 @@ func (o *oggReader) parseHeader() (OggHeader, error) {
 	magicNumber := header[0:4]
 	version := uint8(header[4])
 	headerType := header[5]
-	if string(magicNumber) != "OggS" {
+	if string(magicNumber) != oggSig {
 		return OggHeader{}, errors.New("invalid header")
 	}
 
