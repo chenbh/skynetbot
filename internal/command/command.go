@@ -1,6 +1,7 @@
-package bot
+package command
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -8,19 +9,31 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-type action func(b *bot, args []string, m *discordgo.MessageCreate) error
+var (
+	ErrNotAdmin = errors.New("admin role required")
+)
 
-type command struct {
+type Bot interface {
+	Session() *discordgo.Session
+	IsAdmin(*discordgo.MessageCreate) bool
+	Respond(*discordgo.MessageCreate, string) error
+}
+
+type Action func(b Bot, args []string, m *discordgo.MessageCreate) error
+
+type Cmd struct {
 	name string
 	args []string
 	help string
 
-	fn   action
-	cmds map[string]*command
+	fn   Action          // single action
+	cmds map[string]*Cmd // action group/family
+
+	cleanup func()
 }
 
-func newAction(name string, args []string, help string, fn action) *command {
-	return &command{
+func NewAction(name string, args []string, help string, fn Action) *Cmd {
+	return &Cmd{
 		name: name,
 		args: args,
 		help: help,
@@ -28,16 +41,16 @@ func newAction(name string, args []string, help string, fn action) *command {
 	}
 }
 
-func newGroup(name, help string) *command {
-	c := make(map[string]*command)
-	return &command{
+func NewGroup(name, help string) *Cmd {
+	c := make(map[string]*Cmd)
+	return &Cmd{
 		name: name,
 		help: help,
 		cmds: c,
 	}
 }
 
-func (c *command) addCommand(cmd *command) {
+func (c *Cmd) AddCommand(cmd *Cmd) {
 	if c.cmds == nil {
 		panic("adding commands to an action")
 	}
@@ -47,12 +60,19 @@ func (c *command) addCommand(cmd *command) {
 	c.cmds[cmd.name] = cmd
 }
 
-func (c *command) Run(b *bot, args []string, m *discordgo.MessageCreate) error {
+func (c *Cmd) AddCleanup(fn func()) {
+	if c.cleanup != nil {
+		panic("multiple cleanup added")
+	}
+	c.cleanup = fn
+}
+
+func (c *Cmd) Run(b Bot, args []string, m *discordgo.MessageCreate) error {
 	// command is a single action
 	if c.fn != nil {
 		if len(args) != len(c.args) {
 			msg := fmt.Sprintf("%v expected %v args, but got %v", c.name, len(c.args), len(args))
-			return b.respond(m, msg)
+			return b.Respond(m, msg)
 		}
 
 		return c.fn(b, args, m)
@@ -68,21 +88,33 @@ func (c *command) Run(b *bot, args []string, m *discordgo.MessageCreate) error {
 
 		err := cmd.Run(b, newArgs, m)
 		if err != nil {
-			return b.respond(m, err.Error())
+			return b.Respond(m, err.Error())
 		}
 		return nil
 	} else if args[0] == "help" {
 		msg := fmt.Sprintf("available commands for `%v`:\n", c.name)
 		msg += c.displayHelp()
-		return b.respond(m, msg)
+		return b.Respond(m, msg)
 	} else {
 		msg := fmt.Sprintln(out, "unknown command, available commands:")
 		msg += c.displayHelp()
-		return b.respond(m, msg)
+		return b.Respond(m, msg)
 	}
 }
 
-func (c *command) displayHelp() string {
+func (c *Cmd) Stop() {
+	if c.cleanup != nil {
+		c.cleanup()
+	}
+
+	if c.cmds != nil {
+		for _, v := range c.cmds {
+			v.Stop()
+		}
+	}
+}
+
+func (c *Cmd) displayHelp() string {
 	out := &strings.Builder{}
 	cmds := sort.StringSlice{}
 	for _, cmd := range c.cmds {

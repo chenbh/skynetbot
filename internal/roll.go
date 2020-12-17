@@ -7,9 +7,10 @@ import (
 	"strconv"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/chenbh/skynetbot/internal/command"
 )
 
-func roll(b *bot, args []string, m *discordgo.MessageCreate) error {
+func roll(b command.Bot, args []string, m *discordgo.MessageCreate) error {
 	var err error
 	ceil := 100
 	if len(args) != 0 {
@@ -19,6 +20,6 @@ func roll(b *bot, args []string, m *discordgo.MessageCreate) error {
 		}
 	}
 
-	b.respond(m, fmt.Sprintf("%v", rand.Intn(ceil)))
+	b.Respond(m, fmt.Sprintf("%v", rand.Intn(ceil)))
 	return nil
 }

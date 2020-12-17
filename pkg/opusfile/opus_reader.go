@@ -6,7 +6,7 @@ import (
 )
 
 type OpusReader interface {
-	NextPacket() ([]byte, uint64, error)
+	NextPacket() ([]byte, error)
 	NextFrame() ([]byte, error)
 }
 
@@ -37,7 +37,7 @@ func NewOpusReader(in io.Reader) (OpusReader, error) {
 }
 
 func (r *opusReader) NextFrame() ([]byte, error) {
-	_, _, err := r.NextPacket()
+	_, err := r.NextPacket()
 	if err != nil {
 		return nil, nil
 	}
@@ -45,11 +45,11 @@ func (r *opusReader) NextFrame() ([]byte, error) {
 	return nil, nil
 }
 
-func (r *opusReader) NextPacket() ([]byte, uint64, error) {
+func (r *opusReader) NextPacket() ([]byte, error) {
 	if r.currentPage == nil {
 		page, err := r.ogg.NextPage()
 		if err != nil {
-			return nil, 0, fmt.Errorf("reading ogg page: %v", err)
+			return nil, fmt.Errorf("reading ogg page: %v", err)
 		}
 		r.currentPage = &page
 	}
@@ -74,11 +74,11 @@ func (r *opusReader) NextPacket() ([]byte, uint64, error) {
 		if r.currentSegment >= r.currentPage.PageSegments {
 			page, err := r.ogg.NextPage()
 			if err != nil {
-				return nil, 0, fmt.Errorf("reading ogg page: %v", err)
+				return nil, fmt.Errorf("reading ogg page: %v", err)
 			}
 			r.currentPage = &page
 			r.currentSegment = 0
 		}
 	}
-	return buf, r.currentPage.GranulePosition, nil
+	return buf, nil
 }
