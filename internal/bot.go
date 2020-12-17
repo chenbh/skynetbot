@@ -24,7 +24,7 @@ type state struct {
 }
 
 func NewBot(token, roleID string) (*state, error) {
-	s, err := discordgo.New("State " + token)
+	s, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return nil, fmt.Errorf("creating session: %v", err)
 	}
