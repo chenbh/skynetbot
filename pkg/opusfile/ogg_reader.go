@@ -92,9 +92,9 @@ func (o *oggReader) parseHeader() (OggHeader, error) {
 
 	return OggHeader{
 		Version:     version,
-		IsContinued: headerType&0x1 == 1,
-		IsFirstPage: headerType&0x2 == 1,
-		IsLastPage:  headerType&0x4 == 1,
+		IsContinued: headerType&0x1 == 0x1,
+		IsFirstPage: headerType&0x2 == 0x2,
+		IsLastPage:  headerType&0x4 == 0x4,
 
 		GranulePosition: granulePosition,
 		BitstreamSerial: bitstreamSerial,

@@ -5,11 +5,7 @@ import (
 	"github.com/chenbh/skynetbot/internal/command"
 )
 
-func (s *state) disconnect(b command.Bot, args []string, m *discordgo.MessageCreate) error {
-	if s.vc != nil {
-		s.closeChan <- struct{}{}
-		s.vc.Disconnect()
-		s.vc = nil
-	}
+func (s *state) disconnect(_ command.Bot, _ []string, _ *discordgo.MessageCreate) error {
+	s.cleanup()
 	return nil
 }

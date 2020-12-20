@@ -9,27 +9,13 @@ import (
 	"github.com/chenbh/skynetbot/internal/command"
 )
 
-var clips map[int]*clip
-
-type clip struct {
-	user      string
-	startTime uint64
-	endTime   uint64
-	packets   []*discordgo.Packet
-}
-
-func (c *clip) record(p *discordgo.Packet) {
-	if c.startTime == 0 {
-		c.startTime = uint64(p.Timestamp)
-	}
-
-	c.endTime = uint64(p.Timestamp)
-	c.packets = append(c.packets, p)
-}
-
 type state struct {
-	vc           *discordgo.VoiceConnection
-	closeChan    chan struct{}
+	vc *discordgo.VoiceConnection
+
+	doneRecording chan struct{}
+	recordings    map[string]*clip
+	ssrc          map[int]string
+
 	stopPlayback context.CancelFunc
 	ctx          context.Context
 }
@@ -37,11 +23,12 @@ type state struct {
 func (s *state) cleanup() {
 	if s.vc != nil {
 		s.vc.Disconnect()
+		s.vc = nil
+		close(s.doneRecording)
 	}
 }
 
 func Setup() *command.Cmd {
-	clips = make(map[int]*clip, 0)
 	s := &state{
 		ctx: context.Background(),
 	}

@@ -64,6 +64,7 @@ func convert(filename string) error {
 	outputFile := strings.TrimRight(filename, ext) + ".opus"
 
 	options := []string{
+		"-acodec", "libopus",
 		"-i", filename,
 		"-ar", "48000", // 48khz
 		"-ac", "2", // stereo

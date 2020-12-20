@@ -3,6 +3,7 @@ package opusfile
 import (
 	"encoding/binary"
 	"io"
+	"math/rand"
 )
 
 var checksumTable = crcChecksum()
@@ -11,6 +12,7 @@ type OggWriter interface {
 	WritePage(OggPage) error
 	NewPage(segments [][]byte, granulePosition uint64, pageSeqence uint32) OggPage
 	Close(granulePosition uint64, pageSeqence uint32) error
+	Finish(granulePosition uint64, pageSeqence uint32) error
 }
 
 type oggWriter struct {
@@ -20,9 +22,8 @@ type oggWriter struct {
 
 func NewOggWriter(out io.WriteCloser) OggWriter {
 	return &oggWriter{
-		w: out,
-		// serial: rand.Uint32(),
-		serial: 0x11103f09,
+		w:      out,
+		serial: rand.Uint32(),
 	}
 }
 
@@ -119,11 +120,15 @@ func (o *oggWriter) NewPage(payload [][]byte, granulePosition uint64, pageSeqenc
 	}
 }
 
-func (o *oggWriter) Close(granulePosition uint64, pageSeqence uint32) error {
-	defer o.w.Close()
+func (o *oggWriter) Finish(granulePosition uint64, pageSeqence uint32) error {
 	page := o.NewPage([][]byte{}, granulePosition, pageSeqence)
 	page.IsLastPage = true
 	return o.WritePage(page)
+}
+
+func (o *oggWriter) Close(granulePosition uint64, pageSeqence uint32) error {
+	defer o.w.Close()
+	return o.Finish(granulePosition, pageSeqence)
 }
 
 // https://github.com/pion/webrtc/blob/67826b19141ec9e6f1002a2267008a016a118934/pkg/media/oggwriter/oggwriter.go#L245-L261

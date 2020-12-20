@@ -7,6 +7,7 @@ import (
 
 type OpusWriter interface {
 	WritePacket(packet [][]byte, timestamp uint64) error
+	Finish() error
 	Close() error
 }
 
@@ -24,7 +25,7 @@ func NewOpusWriter(out io.WriteCloser) (OpusWriter, error) {
 	writer := &opusWriter{
 		ogg: oggWriter,
 
-		prevPagePosition: 1,
+		prevPagePosition: 9600, // this technically should be random, but it didn't like 1 for some reason
 	}
 
 	err := writer.writeHeaders()
@@ -41,7 +42,7 @@ func (w *opusWriter) writeHeaders() error {
 	idHeader[8] = 1
 	idHeader[9] = 2
 
-	binary.LittleEndian.PutUint16(idHeader[10:], 3840)  // pre-skip
+	binary.LittleEndian.PutUint16(idHeader[10:], 312)   // pre-skip, this is what ffmpeg / libopus seems to like
 	binary.LittleEndian.PutUint32(idHeader[12:], 48000) // sample rate
 	binary.LittleEndian.PutUint16(idHeader[16:], 0)     // output gain
 	idHeader[18] = 0                                    // mono or stereo
@@ -77,6 +78,10 @@ func (w *opusWriter) WritePacket(p [][]byte, timestamp uint64) error {
 	w.pageIndex++
 
 	return w.ogg.WritePage(page)
+}
+
+func (w *opusWriter) Finish() error {
+	return w.ogg.Finish(w.prevPagePosition, w.pageIndex)
 }
 
 func (w *opusWriter) Close() error {
