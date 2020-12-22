@@ -21,6 +21,7 @@ Commands can be run in any channel the bot has read access to. Any message start
   - `remove NAME`: remove a sound clip, see audio list
   - `stop`: stop playing the current sound clip
   - `upload`: upload sound clip(s) using attachments, see audio list
+  - `clip`: Creates a sound clip of the last 60 sec. of the current voice channel
 - `/roles`
   - `assign @USER @ROLE`: assign a user to a role, requires admin role
   - `create NAME`: create a role, requires admin role
